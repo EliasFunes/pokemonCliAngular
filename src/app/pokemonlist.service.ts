@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import {Pokemon} from "./pokemonlist/pokemonlist.model";
+import {PokemonListApi} from "./pokemonlist/pokemonlistApi.model";
 
 @Injectable({
   providedIn: 'root'
@@ -10,9 +11,17 @@ export class PokemonlistService {
 
   constructor() { }
 
-  async getPokemonList(): Promise<Pokemon[]> {
+  async getPokemonList(url: string | null| undefined): Promise<PokemonListApi> {
+
+    let urlToFetch: string
+    if(typeof url == "string") {
+      urlToFetch = url
+    } else {
+      urlToFetch = `${this.apiUrl}?limit=10`
+    }
+
     try {
-      const response = await fetch(`${this.apiUrl}?limit=10`);
+      const response = await fetch(urlToFetch);
       const data = await response.json();
       const pokemonList: Pokemon[] = data.results.map((pokemon: any) => {
         const pokemonId = this.extractIdFromUrl(pokemon.url)
@@ -22,10 +31,23 @@ export class PokemonlistService {
           imageUrl: `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${pokemonId}.png`
         }
     });
-      return pokemonList;
+
+      // TODO: falta validaciones de los datos tanto para la buena como mala respuesta.
+      return {
+        count: data.count,
+        nextUrl: data.next,
+        previous: data.previous,
+        results: pokemonList
+      }
+
     } catch (error) {
       console.error('Error fetching Pokemon list:', error);
-      return [];
+      return {
+        count: 0,
+        nextUrl: null,
+        previous: null,
+        results: []
+      }
     }
   }
 
